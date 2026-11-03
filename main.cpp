@@ -45,7 +45,67 @@ public:
         zs=zs+h;
     }
 };
+class Rmatrix{
+public:
+    double a1;
+    double a2;
+    double a3;
+    double b1;
+    double b2;
+    double b3;
+    double c1;
+    double c2;
+    double c3;
+    void c_r_m(ae kt){//calculater of rotation matrix旋转矩阵计算器。
+        a1=cos(kt.fi)*cos(kt.k)-sin(kt.fi)*sin(kt.w)*sin(kt.k);
+        a2=(-cos(kt.fi)*sin(kt.k))-sin(kt.fi)*sin(kt.w)*cos(kt.k);
+        a3=(-sin(kt.fi)*cos(kt.w));
+        b1=cos(kt.w)*sin(kt.k);
+        b2=cos(kt.w)*cos(kt.k);
+        b3=(-sin(kt.w));
+        c1=sin(kt.fi)*cos(kt.k)+cos(kt.fi)*sin(kt.w)*sin(kt.k);
+        c2=(-sin(kt.fi)*sin(kt.k))+cos(kt.fi)*sin(kt.w)*cos(kt.k);
+        c3=cos(kt.fi)*cos(kt.w);
+    }
+};
+void x0y0z0(int n,vector<double>xb,vector<double> yb,vector<double> zb,Rmatrix rm,vector<double>x0,vector<double> y0,vector<double> z0){
+    vector<double> xyz;
+    double x,y,z;
+    for(int j=0;j<n;j++){
+        x=rm.a1*xb[j]+rm.a2*yb[j]+rm.a3*zb[j];
+        x0.push_back(x);
+        y=rm.b1*xb[j]+rm.b2*yb[j]+rm.b3*zb[j];
+        y0.push_back(y);
+        z=rm.c1*xb[j]+rm.c2*yb[j]+rm.c3*zb[j];
+        z0.push_back(z);
+    }
+}
+double f_x(double f,double x0,double z0){
+    return -f*x0/z0;
+}
+double f_y(double f,double y0,double z0){
+    return -f*y0/z0;
+}
+vector<double> cheif_calculator(wk xk,ces sp,ae av){//xk为读取的文件值，sp是是目前的坐标，av是角目前已知的值。
+    vector<double> A;
+    vector<double> L;
+    vector<double> D;
 
+    Rmatrix R;
+    R.c_r_m(av);//计算a1、a2、a3、b1、b2、b3、c1、c2、c3的值，放入类R中
+    vector<double> xb;
+    vector<double> yb;
+    vector<double> zb;
+    for(int i=0;i < xk.n;i++){
+        int l=i*6;
+        xb.push_back(xk.cp[l+3]-sp.xs);
+        yb.push_back(xk.cp[l+4]-sp.ys);
+        zb.push_back(xk.cp[l+5]-sp.zs);
+    }
+    //前面是计算x-xs，y-ys，z-zs的值
+    
+
+}
 int main()
 {
     wk zx;//无任何意义，只是为了引用一个变量。
@@ -75,5 +135,8 @@ int main()
     ps.init_ces(zx);
     fa.init_ae();
     cout << "初始化成功！" << endl;
+    //下一步通过循环，进行最后的求解
+   
+
 
 }

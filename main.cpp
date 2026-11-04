@@ -25,10 +25,13 @@ public:
 };
 class ces{//coordinate_element of s,摄影中心的坐标
 public:
-    double xs;//s点的x坐标
-    double ys;//s点的y坐标
-    double zs;//s点的z坐标
-    void init_ces(wk fc){//fc为这个函数专用的名称
+    double xs=0.0;//s点的x坐标
+    double ys=0.0;//s点的y坐标
+    double zs=0.0;//s点的z坐标
+    void init_ces(const wk& fc){//fc为这个函数专用的名称
+        xs = 0.0;
+        ys = 0.0;
+        zs = 0.0;
         int j;
         int x_index=3;
         int y_index=4;
@@ -41,7 +44,7 @@ public:
         xs/=fc.n;   
         ys/=fc.n;
         zs/=fc.n;
-        int h=fc.f/1000*fc.m;
+        double h=fc.f/1000*fc.m;
         zs=zs+h;
     }
 };
@@ -68,15 +71,15 @@ public:
         c3=cos(kt.fi)*cos(kt.w);
     }
 };
-void x0y0z0(int n,vector<double>xb,vector<double> yb,vector<double> zb,Rmatrix rm,vector<double>x0,vector<double> y0,vector<double> z0){
+void x0y0z0(int n,const vector<double>& xb,const vector<double>& yb,const vector<double>& zb,const Rmatrix& rm,vector<double>& x0,vector<double>& y0,vector<double>& z0){
     vector<double> xyz;
     double x,y,z;
     for(int j=0;j<n;j++){
-        x=rm.a1*xb[j]+rm.a2*yb[j]+rm.a3*zb[j];
+        x=rm.a1*xb[j]+rm.b1 *yb[j]+rm.c1*zb[j];
         x0.push_back(x);
-        y=rm.b1*xb[j]+rm.b2*yb[j]+rm.b3*zb[j];
+        y=rm.a2*xb[j]+rm.b2*yb[j]+rm.c2*zb[j];
         y0.push_back(y);
-        z=rm.c1*xb[j]+rm.c2*yb[j]+rm.c3*zb[j];
+        z=rm.a3*xb[j]+rm.b3*yb[j]+rm.c3*zb[j];
         z0.push_back(z);
     }
 }
@@ -87,10 +90,6 @@ double f_y(double f,double y0,double z0){
     return -f*y0/z0;
 }
 vector<double> cheif_calculator(wk xk,ces sp,ae av){//xk为读取的文件值，sp是是目前的坐标，av是角目前已知的值。
-    vector<double> A;
-    vector<double> L;
-    vector<double> D;
-
     Rmatrix R;
     R.c_r_m(av);//计算a1、a2、a3、b1、b2、b3、c1、c2、c3的值，放入类R中
     vector<double> xb;
@@ -102,9 +101,79 @@ vector<double> cheif_calculator(wk xk,ces sp,ae av){//xk为读取的文件值，
         yb.push_back(xk.cp[l+4]-sp.ys);
         zb.push_back(xk.cp[l+5]-sp.zs);
     }
-    //前面是计算x-xs，y-ys，z-zs的值
-    
+    //前面是计算x-xs，y-ys，z-zs的值。
+    //下面是计算X0，Y0，Z0。
+    vector<double> x_0;
+    vector<double> y_0;
+    vector<double> z_0;
+    x0y0z0(xk.n,xb,yb,zb,R,x_0,y_0,z_0);
+    //下边计算矩阵l
+    vector<double> x0;
+    vector<double> y0;
+    vector<double> x;
+    vector<double> y;
+    vector<double> l;
+    for(int k=0;k<xk.n;k++){
+        x0.push_back(f_x(xk.f,x_0[k],z_0[k]));
+        x.push_back(xk.cp[6*k+1]);
+        y0.push_back(f_y(xk.f,y_0[k],z_0[k]));  
+        y.push_back(xk.cp[6*k+2]);
+    }
+    for(int i=0;i<xk.n;i++){
+        l.push_back(x[i]-x0[i]);
+        l.push_back(y[i]-y0[i]);
+    }
+    vector<double> d_xs;
+    vector<double> d_ys;
+    vector<double> d_zs;
+    vector<double> d_phi;
+    vector<double> d_w;
+    vector<double> d_k;
+    for(int i=0;i<xk.n;i++){
+        d_xs.push_back(((R.a1*(xk.f))+(R.a3*(x0[i])))/z_0[i]);
+        d_xs.push_back(((R.a2*(xk.f))+(R.a3*(y0[i])))/z_0[i]);
+        d_ys.push_back(((R.b1*(xk.f))+(R.b3*(x0[i])))/z_0[i]);
+        d_ys.push_back(((R.b2*(xk.f))+(R.b3*(y0[i])))/z_0[i]);
+        d_zs.push_back(((R.c1*(xk.f))+(R.c3*(x0[i])))/z_0[i]);
+        d_zs.push_back(((R.c2*(xk.f))+(R.c3*(y0[i])))/z_0[i]);
+        d_phi.push_back(y0[i]*sin(av.w)-(((x0[i]*((x0[i]*cos(av.k))-(y0[i]*sin(av.k)))/xk.f)+(xk.f*cos(av.k)))*cos(av.w)));
+        d_phi.push_back((-x0[i])*sin(av.w)-(((y0[i]*((x0[i]*cos(av.k))-(y0[i]*sin(av.k)))/xk.f)-(xk.f*sin(av.k)))*cos(av.w)));
+        d_w.push_back(-(xk.f*sin(av.k))-(((x0[i]*((x0[i]*sin(av.k))+(y0[i]*cos(av.k)))/xk.f))));
+        d_w.push_back(-(xk.f*cos(av.k))-(((y0[i]*((x0[i]*sin(av.k))+(y0[i]*cos(av.k)))/xk.f))));
+        d_k.push_back(y0[i]);
+        d_k.push_back(-x0[i]);
+    }
+    Eigen::MatrixXd A(2*xk.n,6);
+    A.setZero();
+    Eigen::VectorXd L(2*xk.n);
+    L.setZero();
+    for(int i=0;i<xk.n;i++){
+        A(2*i,0)=d_xs[2*i];
+        A(2*i,1)=d_ys[2*i];
+        A(2*i,2)=d_zs[2*i];
+        A(2*i,3)=d_phi[2*i];
+        A(2*i,4)=d_w[2*i];
+        A(2*i,5)=d_k[2*i];
 
+        A(2*i+1,0)=d_xs[2*i+1];
+        A(2*i+1,1)=d_ys[2*i+1];
+        A(2*i+1,2)=d_zs[2*i+1];
+        A(2*i+1,3)=d_phi[2*i+1];
+        A(2*i+1,4)=d_w[2*i+1];
+        A(2*i+1,5)=d_k[2*i+1];
+
+        L(2*i)=l[2*i];
+        L(2*i+1)=l[2*i+1];
+    }
+    Eigen::Matrix<double,6,6>N=A.transpose()*A;
+    Eigen::Matrix<double,6,1>W=A.transpose()*L;
+    //解方程
+    Eigen::Matrix<double,6,1>delta=N.ldlt().solve(W);
+    vector<double> del;
+    for(int i=0;i<6;i++){
+        del.push_back(delta(i));
+    } 
+    return del;
 }
 int main()
 {
@@ -135,8 +204,24 @@ int main()
     ps.init_ces(zx);
     fa.init_ae();
     cout << "初始化成功！" << endl;
-    //下一步通过循环，进行最后的求解
-   
 
-
+    
+    vector<double> del;//下一步通过循环，进行最后的求解
+    do{
+        del=cheif_calculator(zx,ps,fa);
+        ps.xs+=del[0];
+        ps.ys+=del[1];
+        ps.zs+=del[2];
+        fa.fi+=del[3];
+        fa.w+=del[4];
+        fa.k+=del[5];
+    }while(std::abs(del[0]) > 1e-5 || std::abs(del[1]) > 1e-5 || std::abs(del[2]) > 1e-5|| std::abs(del[3]) > 1e-6 || std::abs(del[4]) > 1e-6 || std::abs(del[5]) > 1e-6);
+    cout << "s点的x坐标为：" << ps.xs <<endl;
+    cout << "s点的y坐标为：" << ps.ys <<endl;
+    cout << "s点的z坐标为：" << ps.zs <<endl;
+    cout << "phi的值为：" << fa.fi <<endl;
+    cout << "w的值为：" << fa.w <<endl;
+    cout << "k的值为：" << fa.k <<endl;
+    return 0;
 }
+//wook code 26/11/5

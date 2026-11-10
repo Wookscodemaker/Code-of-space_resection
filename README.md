@@ -4,5 +4,7 @@
 >### 本项目在矩阵的计算上使用了eigen库，在项目中包括了eigen这个头文件库，在下方示出eigen的官网，方便大家查看。
 >#### This project uses the Eigen library for matrix calculations and includes its header files. The official Eigen website is provided below for your reference.
 > https://libeigen.gitlab.io/
+### data文件夹中有两组不同的data文件，方便大家校验程序的正确性。
+#### The data files in the data folder are used to verify the correctness of the program.
 
 
